@@ -11,6 +11,7 @@ import logger from "morgan";
 //import authenticateUser from "./middleware/authentication";
 
 import authRouter from "./routes/auth";
+import userRouter from "./routes/user";
 
 import notFoundMiddleware from "./middleware/not-found";
 import errorHandlerMiddleware from "./middleware/error-handler";
@@ -32,8 +33,10 @@ app.use(logger("dev"));
 app.use(express.static("public"));
 app.use(favicon(__dirname + "/public/favicon.ico"));
 
+
 // Routes
 app.use("/api/v1/auth", authRouter);
+app.use("/api/v1/user", userRouter);
 // Error Handling
 app.use(notFoundMiddleware);
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {

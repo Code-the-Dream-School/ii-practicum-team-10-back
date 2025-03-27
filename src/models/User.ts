@@ -6,8 +6,14 @@ export interface IUser extends Document {
     name: string;
     email: string;
     password: string;
-    role: 'user' | 'provider' | 'admin';
-    activitiesEnrolled: mongoose.Types.ObjectId[];
+    role: 'user' | 'admin';
+    profilePicture: string; // New field
+    progress: {
+        css: number;
+        html: number;
+        jsChallenges: number;
+        jsTheory: number;
+    };
     createJWT(): string;
     comparePassword(candidatePassword: string): Promise<boolean>;
 }
@@ -38,6 +44,20 @@ const UserSchema = new Schema<IUser>({
         enum: ['user', 'admin'],
         default: 'user',
     },
+    profilePicture: {
+        type: String,
+        default: function () {
+            // Assign a random profile picture from public folder
+            const images = ["1.png", "2.png", "3.png", "4.png"];
+            return `/${images[Math.floor(Math.random() * images.length)]}`;
+        }
+    },
+    progress: {
+        css: { type: Number, default: 0 }, // Progress in percentage
+        html: { type: Number, default: 0 },
+        jsChallenges: { type: Number, default: 0 },
+        jsTheory: { type: Number, default: 0 }
+    }
 });
 
 // Hash password before saving
@@ -71,4 +91,3 @@ UserSchema.methods.comparePassword = async function (
 };
 
 export default mongoose.model<IUser>('User', UserSchema);
-

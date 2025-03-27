@@ -13,7 +13,6 @@ interface AuthRequest extends Request {
     };
 }
 
-
 // **User Registration**
 export const registerUser = async (req: AuthRequest, res: Response) => {
     const { name, email, password, verifyPassword } = req.body;
@@ -33,11 +32,15 @@ export const registerUser = async (req: AuthRequest, res: Response) => {
     const token = user.createJWT();
 
     res.status(StatusCodes.CREATED).json({
-        user: { name: user.name, email: user.email, role: user.role },
+        user: {
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            profilePicture: user.profilePicture // Include the assigned profile picture
+        },
         token
     });
 };
-
 // **Login for User
 export const login = async (req: AuthRequest, res: Response) => {
     const { email, password } = req.body;
@@ -57,7 +60,6 @@ export const login = async (req: AuthRequest, res: Response) => {
         throw new UnauthenticatedError("Invalid credentials.");
     }
 
-    const isProvider = user.role === "provider";
     const token = jwt.sign(
         { userId: user._id, name: user.name, role: user.role },
         process.env.JWT_SECRET as string,
@@ -66,9 +68,10 @@ export const login = async (req: AuthRequest, res: Response) => {
 
     res.status(StatusCodes.OK).json({
         user: {
+            userId: user._id,
             email: user.email,
             role: user.role,
-            providerId: isProvider ? user._id : null,
+            profilePicture: user.profilePicture
         },
         token,
     });

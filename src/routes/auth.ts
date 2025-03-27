@@ -9,10 +9,6 @@ router.post("/register/user", registerUser);
 // Login user or provider
 router.post("/login", login);
 
-//Get current user details
-router.get("/me");
 
-//logout
-router.post("/logout");
 
 export default router;
