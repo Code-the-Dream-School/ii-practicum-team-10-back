@@ -5,7 +5,7 @@ import express, { Application, Request, Response, NextFunction } from "express";
 import cors from "cors";
 import favicon from "express-favicon";
 import logger from "morgan";
-
+import { setupSwagger } from "./swagger";
 
 
 //import authenticateUser from "./middleware/authentication";
@@ -37,6 +37,10 @@ app.use(favicon(__dirname + "/public/favicon.ico"));
 // Routes
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/user", userRouter);
+
+// Swagger Documentation
+setupSwagger(app); // Add Swagger UI at /api-docs
+
 // Error Handling
 app.use(notFoundMiddleware);
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {

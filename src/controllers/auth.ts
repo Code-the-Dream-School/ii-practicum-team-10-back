@@ -12,7 +12,60 @@ interface AuthRequest extends Request {
         verifyPassword: string;
     };
 }
-
+/**
+ * @swagger
+ * /api/v1/auth/register/user:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: Alex
+ *               email:
+ *                 type: string
+ *                 example: alex@gmail.com
+ *               password:
+ *                 type: string
+ *                 example: secret
+ *               verifyPassword:
+ *                 type: string
+ *                 example: secret
+ *             required:
+ *               - name
+ *               - email
+ *               - password
+ *               - verifyPassword
+ *     responses:
+ *       201:
+ *         description: User created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     name:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     role:
+ *                       type: string
+ *                     profilePicture:
+ *                       type: string
+ *                 token:
+ *                   type: string
+ *       400:
+ *         description: Bad request (e.g., missing fields, passwords don't match, email in use)
+ */
 // **User Registration**
 export const registerUser = async (req: AuthRequest, res: Response) => {
     const { name, email, password, verifyPassword } = req.body;
@@ -41,6 +94,54 @@ export const registerUser = async (req: AuthRequest, res: Response) => {
         token
     });
 };
+/**
+ * @swagger
+ * /api/v1/auth/login:
+ *   post:
+ *     summary: Log in a user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: salex@gmail.com
+ *               password:
+ *                 type: string
+ *                 example: secret
+ *             required:
+ *               - email
+ *               - password
+ *     responses:
+ *       200:
+ *         description: Successful login
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     userId:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     role:
+ *                       type: string
+ *                     profilePicture:
+ *                       type: string
+ *                 token:
+ *                   type: string
+ *       400:
+ *         description: Missing email or password
+ *       401:
+ *         description: Invalid credentials
+ */
 // **Login for User
 export const login = async (req: AuthRequest, res: Response) => {
     const { email, password } = req.body;
