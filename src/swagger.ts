@@ -3,6 +3,9 @@ import swaggerUi from 'swagger-ui-express';
 import { Application } from 'express';
 import path from 'path';
 
+// Use environment variable for server URL, default to localhost for development
+const SERVER_URL = process.env.SERVER_URL || 'http://localhost:8000';
+
 const options = {
     definition: {
         openapi: '3.0.0',
@@ -13,8 +16,8 @@ const options = {
         },
         servers: [
             {
-                url: 'http://localhost:8000',
-                description: 'Local development server',
+                url: SERVER_URL,
+                description: 'Primary server (local dev or deployed)',
             },
         ],
         components: {
@@ -40,4 +43,4 @@ export const setupSwagger = (app: Application) => {
 };
 
 // Debug: Log the generated spec
-console.log('Swagger Spec:', JSON.stringify(swaggerSpec, null, 2));
+//console.log('Swagger Spec:', JSON.stringify(swaggerSpec, null, 2));
