@@ -129,6 +129,8 @@ export const registerUser = async (req: AuthRequest, res: Response) => {
  *                   properties:
  *                     userId:
  *                       type: string
+ *                     name:
+ *                       type: string
  *                     email:
  *                       type: string
  *                     role:
@@ -170,6 +172,7 @@ export const login = async (req: AuthRequest, res: Response) => {
     res.status(StatusCodes.OK).json({
         user: {
             userId: user._id,
+            name: user.name,
             email: user.email,
             role: user.role,
             profilePicture: user.profilePicture

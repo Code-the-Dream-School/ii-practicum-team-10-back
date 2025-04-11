@@ -12,6 +12,7 @@ import { setupSwagger } from "./swagger";
 
 import authRouter from "./routes/auth";
 import userRouter from "./routes/user";
+import trainingRouter from "./routes/training";
 
 import notFoundMiddleware from "./middleware/not-found";
 import errorHandlerMiddleware from "./middleware/error-handler";
@@ -37,6 +38,7 @@ app.use(favicon(__dirname + "/public/favicon.ico"));
 // Routes
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/user", userRouter);
+app.use("/api/v1/training", trainingRouter);
 
 // Swagger Documentation
 setupSwagger(app); // Add Swagger UI at /api-docs
