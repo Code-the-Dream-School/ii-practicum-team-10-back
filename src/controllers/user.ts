@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import User from "../models/User";
 import { StatusCodes } from "http-status-codes";
+import { AuthenticatedRequest } from "../middleware/authentication";
 
 /**
  * @swagger
@@ -32,9 +33,13 @@ import { StatusCodes } from "http-status-codes";
  *                       type: number
  *                     html:
  *                       type: number
- *                     jsChallenges:
+ *                     javaScript:
  *                       type: number
- *                     jsTheory:
+ *                     react:
+ *                       type: number
+ *                     nodejs:
+ *                       type: number
+ *                     overall:
  *                       type: number
  *       401:
  *         description: Authentication invalid
@@ -81,10 +86,16 @@ export const getUserProgress = async (req: Request, res: Response) => {
  *                   html:
  *                     type: number
  *                     example: 10
- *                   jsChallenges:
+ *                   javaScript:
  *                     type: number
  *                     example: 10
- *                   jsTheory:
+ *                   react:
+ *                     type: number
+ *                     example: 10
+ *                   nodejs:
+ *                     type: number
+ *                     example: 10
+ *                   overall:
  *                     type: number
  *                     example: 10
  *     responses:
@@ -102,9 +113,13 @@ export const getUserProgress = async (req: Request, res: Response) => {
  *                       type: number
  *                     html:
  *                       type: number
- *                     jsChallenges:
+ *                     javaScript:
  *                       type: number
- *                     jsTheory:
+ *                     react:
+ *                       type: number
+ *                     nodejs:
+ *                       type: number
+ *                     overall:
  *                       type: number
  *       400:
  *         description: Progress data is required
@@ -123,11 +138,47 @@ export const updateUserProgress = async (req: Request, res: Response) => {
 
     const user = await User.findByIdAndUpdate(
         id,
-        { progress }, // Directly update the progress field
+        { progress },
         { new: true, runValidators: true }
     );
 
     if (!user) return res.status(StatusCodes.NOT_FOUND).json({ msg: "User not found" });
 
     res.status(StatusCodes.OK).json({ progress: user.progress });
+};
+/**
+ * @swagger
+ * /api/v1/user/progress:
+ *   get:
+ *     summary: Get overall progress for the top 10 users (Leaders Dashboard)
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of the top 10 users with their overall progress, sorted by overall progress in descending order
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   name:
+ *                     type: string
+ *                   overallProgress:
+ *                     type: number
+ *       401:
+ *         description: Authentication invalid
+ */
+export const getAllUsersOverallProgress = async (req: AuthenticatedRequest, res: Response) => {
+    const users = await User.find({})
+        .select('name progress.overall')
+        .sort({ 'progress.overall': -1 })
+        .limit(10);
+    const progressData = users.map(user => ({
+        name: user.name,
+        overallProgress: user.progress.overall,
+    }));
+    res.status(StatusCodes.OK).json(progressData);
 };

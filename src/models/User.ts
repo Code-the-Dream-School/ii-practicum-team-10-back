@@ -11,8 +11,10 @@ export interface IUser extends Document {
     progress: {
         css: number;
         html: number;
-        jsChallenges: number;
-        jsTheory: number;
+        javaScript: number;
+        react: number;
+        nodejs: number;
+        overall: number;
     };
     createJWT(): string;
     comparePassword(candidatePassword: string): Promise<boolean>;
@@ -55,8 +57,10 @@ const UserSchema = new Schema<IUser>({
     progress: {
         css: { type: Number, default: 0 }, // Progress in percentage
         html: { type: Number, default: 0 },
-        jsChallenges: { type: Number, default: 0 },
-        jsTheory: { type: Number, default: 0 }
+        javaScript: { type: Number, default: 0 },
+        react: { type: Number, default: 0 },
+        nodejs: { type: Number, default: 0 },
+        overall: { type: Number, default: 0 }
     }
 });
 
