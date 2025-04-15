@@ -168,17 +168,20 @@ export const updateUserProgress = async (req: Request, res: Response) => {
  *                     type: string
  *                   overallProgress:
  *                     type: number
+ *                   profilePicture:
+ *                     type: string
  *       401:
  *         description: Authentication invalid
  */
 export const getAllUsersOverallProgress = async (req: AuthenticatedRequest, res: Response) => {
     const users = await User.find({})
-        .select('name progress.overall')
+        .select('name progress.overall profilePicture')
         .sort({ 'progress.overall': -1 })
         .limit(10);
     const progressData = users.map(user => ({
         name: user.name,
         overallProgress: user.progress.overall,
+        profilePicture: user.profilePicture,
     }));
     res.status(StatusCodes.OK).json(progressData);
 };
