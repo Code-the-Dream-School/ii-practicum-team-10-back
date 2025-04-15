@@ -1,9 +1,13 @@
-import { Request, Response } from 'express';
+import {NextFunction, Request, Response} from 'express';
 import { StatusCodes } from 'http-status-codes';
 import Question from '../models/Question';
 import UserSubmission from '../models/UserSubmission';
 import { AuthenticatedRequest } from '../middleware/authentication';
 import { BadRequestError, NotFoundError } from '../errors';
+
+type SortOptions = {
+    [key: string]: 1 | -1;
+};
 
 /**
  * @swagger
@@ -593,4 +597,73 @@ export const deleteQuestion = async (req: AuthenticatedRequest, res: Response) =
     await UserSubmission.deleteMany({ questionId: id });
     res.status(StatusCodes.OK).json({ msg: 'Question deleted' });
 };
+/**
+ * @swagger
+ * /api/v1/training/questions:
+ *   get:
+ *     summary: Get all questions with sorting (Admin only)
+ *     tags: [Training]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: sort
+ *         schema:
+ *           type: string
+ *         description: Sort fields (e.g., "topic,-type" for topic ascending, type descending)
+ *         example: topic,-type
+ *     responses:
+ *       200:
+ *         description: List of all questions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 questions:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Question'
+ *       401:
+ *         description: Unauthorized - JWT token required
+ */
+export const getAllQuestions = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+        const { sort } = req.query;
 
+        let sortOptions = {};
+        if (sort) {
+            const sortFields = (sort as string).split(',').reduce((acc: SortOptions, field: string) => {
+                if (field.startsWith('-')) {
+                    acc[field.substring(1)] = -1; // Descending
+                } else {
+                    acc[field] = 1; // Ascending
+                }
+                return acc;
+            }, {});
+            sortOptions = sortFields;
+        } else {
+            // Default sorting by topic (ascending) and type (ascending)
+            sortOptions = { topic: 1, type: 1 };
+        }
+
+        // Fetch all questions with sorting
+        const questions = await Question.find().sort(sortOptions);
+
+        // Map the questions to the desired response format
+        const formattedQuestions = questions.map((question) => ({
+            id: question._id.toString(),
+            topic: question.topic,
+            type: question.type,
+            codeSnippet: question.codeSnippet,
+            questionText: question.questionText,
+            answers: question.answers,
+            questionSuggestedAnswers: question.questionSuggestedAnswers,
+            tests: question.tests,
+        }));
+
+        res.status(200).json({ questions: formattedQuestions });
+    } catch (error) {
+        next(error);
+    }
+};
