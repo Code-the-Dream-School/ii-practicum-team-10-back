@@ -11,7 +11,7 @@ export interface IQuestion extends Document {
     codeSnippet?: string;
     questionText: string;
     answers: string[];
-    questionSuggestedAnswers?: string[]; 
+    questionSuggestedAnswers?: string[];
     tests?: ITest[];
 }
 
@@ -36,7 +36,7 @@ const QuestionSchema = new Schema<IQuestion>({
     },
     answers: {
         type: [String],
-        required: [true, 'Please provide at least one answer'],
+        required: false,
     },
     questionSuggestedAnswers: {
         type: [String],
