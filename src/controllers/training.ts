@@ -369,13 +369,16 @@ export const getSubmissions = async (req: AuthenticatedRequest, res: Response) =
 export const createQuestion = async (req: AuthenticatedRequest, res: Response) => {
     const { topic, type, codeSnippet, questionText, answers, questionSuggestedAnswers, tests } = req.body;
 
-    if (!topic || !type || !questionText || !answers || !Array.isArray(answers) || answers.length === 0) {
-        throw new BadRequestError('Please provide topic, type, questionText, and at least one answer');
+    if (!topic || !type || !questionText) {
+        throw new BadRequestError('Please provide topic, type, questionText');
     }
 
-    // Additional validation for quizzes and coding challenges
-    if (type === 'quiz' && (!questionSuggestedAnswers || !Array.isArray(questionSuggestedAnswers) || questionSuggestedAnswers.length < 2)) {
-        throw new BadRequestError('Quiz questions must have at least 2 suggested answers');
+    // Additional validation for flashcards, quizzes, and coding challenges
+    if (type === 'flashcard' && (!questionSuggestedAnswers || !Array.isArray(questionSuggestedAnswers) || !answers || !Array.isArray(answers) || answers.length === 0)) {
+        throw new BadRequestError('Flashcard questions must have answers and suggested answers');
+    }
+    if (type === 'quiz' && (!questionSuggestedAnswers || !Array.isArray(questionSuggestedAnswers) || questionSuggestedAnswers.length < 2) || !answers || !Array.isArray(answers) || answers.length === 0) {
+        throw new BadRequestError('Quiz questions must have answers and at least 2 suggested answers');
     }
     if (type === 'codingChallenge' && (!tests || !Array.isArray(tests) || tests.length < 1)) {
         throw new BadRequestError('Coding challenges must have at least 1 test case');
