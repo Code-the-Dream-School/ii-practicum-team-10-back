@@ -374,8 +374,8 @@ export const createQuestion = async (req: AuthenticatedRequest, res: Response) =
     }
 
     // Additional validation for flashcards, quizzes, and coding challenges
-    if (type === 'flashcard' && (!questionSuggestedAnswers || !Array.isArray(questionSuggestedAnswers) || !answers || !Array.isArray(answers) || answers.length === 0)) {
-        throw new BadRequestError('Flashcard questions must have answers and suggested answers');
+    if (type === 'flashcard' && (!answers || !Array.isArray(answers) || answers.length === 0)) {
+        throw new BadRequestError('Flashcard questions must have answers.');
     }
     if (type === 'quiz' && (!questionSuggestedAnswers || !Array.isArray(questionSuggestedAnswers) || questionSuggestedAnswers.length < 2) || !answers || !Array.isArray(answers) || answers.length === 0) {
         throw new BadRequestError('Quiz questions must have answers and at least 2 suggested answers');
