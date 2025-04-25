@@ -367,12 +367,18 @@ export const getSubmissions = async (req: AuthenticatedRequest, res: Response) =
  *         description: Admin access required
  */
 export const createQuestion = async (req: AuthenticatedRequest, res: Response) => {
+    console.log('Received request body:', req.body);
     const { topic, type, codeSnippet, questionText, answers, questionSuggestedAnswers, tests } = req.body;
 
+    console.log('Type:', type);
+    console.log('Tests:', tests);
     if (!topic || !type || !questionText) {
         throw new BadRequestError('Please provide topic, type, questionText');
     }
-
+    const validTypes = ['flashcard', 'quiz', 'codingChallenge'];
+    if (!validTypes.includes(type)) {
+        throw new BadRequestError(`Invalid question type. Must be one of: ${validTypes.join(', ')}`);
+    }
     // Additional validation for flashcards, quizzes, and coding challenges
     if (type === 'flashcard' && (!answers || !Array.isArray(answers) || answers.length === 0)) {
         throw new BadRequestError('Flashcard questions must have answers.');
@@ -380,18 +386,28 @@ export const createQuestion = async (req: AuthenticatedRequest, res: Response) =
     if (type === 'quiz' && (!questionSuggestedAnswers || !Array.isArray(questionSuggestedAnswers) || questionSuggestedAnswers.length < 2 || !answers || !Array.isArray(answers) || answers.length === 0)) {
         throw new BadRequestError('Quiz questions must have answers and at least 2 suggested answers');
     }
-    if (type === 'codingChallenge' && (!tests || !Array.isArray(tests) || tests.length < 1)) {
-        throw new BadRequestError('Coding challenges must have at least 1 test case');
+    if (type === 'codingChallenge') {
+        if (!tests || !Array.isArray(tests) || tests.length < 1) {
+            throw new BadRequestError('Coding challenges must have at least one test case');
+        }
+        for (const test of tests) {
+            if (!test.input || !Array.isArray(test.input) || !('expectedOutput' in test)) {
+                throw new BadRequestError('Each test case must have an "input" array and an "expectedOutput" value');
+            }
+        }
+        if (answers?.length > 0 || questionSuggestedAnswers?.length > 0) {
+            throw new BadRequestError('Coding challenges should not have answers or suggested answers');
+        }
     }
 
     const question = await Question.create({
         topic,
         type,
-        codeSnippet,
+        codeSnippet: codeSnippet || null,
         questionText,
-        answers,
-        questionSuggestedAnswers,
-        tests,
+        answers: answers || [],
+        questionSuggestedAnswers: questionSuggestedAnswers || [],
+        tests: tests || [],
     });
 
     res.status(StatusCodes.CREATED).json({
