@@ -1,4 +1,4 @@
-import {NextFunction, Request, Response} from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import Question from '../models/Question';
 import UserSubmission from '../models/UserSubmission';
@@ -8,6 +8,53 @@ import { BadRequestError, NotFoundError } from '../errors';
 type SortOptions = {
     [key: string]: 1 | -1;
 };
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Test:
+ *       type: object
+ *       properties:
+ *         input:
+ *           type: array
+ *           items:
+ *             type: any
+ *           description: Input array for the test case
+ *         expectedOutput:
+ *           type: any
+ *           description: Expected output for the test case
+ *     Question:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *         topic:
+ *           type: string
+ *           enum: [CSS, HTML, JavaScript, React, NodeJS]
+ *         type:
+ *           type: string
+ *           enum: [flashcard, quiz, codingChallenge]
+ *         codeSnippet:
+ *           type: string
+ *           nullable: true
+ *         questionText:
+ *           type: string
+ *         answers:
+ *           type: array
+ *           items:
+ *             type: string
+ *         questionSuggestedAnswers:
+ *           type: array
+ *           items:
+ *             type: string
+ *         tests:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Test'
+ *         status:
+ *           type: string
+ */
 
 /**
  * @swagger
@@ -40,37 +87,7 @@ type SortOptions = {
  *             schema:
  *               type: array
  *               items:
- *                 type: object
- *                 properties:
- *                   id:
- *                     type: string
- *                   topic:
- *                     type: string
- *                   type:
- *                     type: string
- *                   codeSnippet:
- *                     type: string
- *                   questionText:
- *                     type: string
- *                   answers:
- *                     type: array
- *                     items:
- *                       type: string
- *                   questionSuggestedAnswers:
- *                     type: array
- *                     items:
- *                       type: string
- *                   tests:
- *                     type: array
- *                     items:
- *                       type: object
- *                       properties:
- *                         input:
- *                           type: string
- *                         expectedOutput:
- *                           type: string
- *                   status:
- *                     type: string
+ *                 $ref: '#/components/schemas/Question'
  *       400:
  *         description: Invalid topic or type
  *       401:
@@ -79,6 +96,8 @@ type SortOptions = {
 export const getQuestions = async (req: AuthenticatedRequest, res: Response) => {
     const { topic, type } = req.params;
     const userId = req.user?.userId;
+
+    console.log(`Fetching questions for topic: ${topic}, type: ${type}, userId: ${userId}`);
 
     const validTopics = ['CSS', 'HTML', 'JavaScript', 'React', 'NodeJS'];
     const validTypes = ['flashcard', 'quiz', 'codingChallenge'];
@@ -100,7 +119,7 @@ export const getQuestions = async (req: AuthenticatedRequest, res: Response) => 
     });
 
     const formattedQuestions = questions.map((question) => ({
-        id: question._id,
+        id: question._id.toString(),
         topic: question.topic,
         type: question.type,
         codeSnippet: question.codeSnippet,
@@ -166,6 +185,8 @@ export const submitAnswer = async (req: AuthenticatedRequest, res: Response) => 
     const { topic, type } = req.params;
     const { questionId } = req.body;
     const userId = req.user?.userId;
+
+    console.log(`Submitting answer for questionId: ${questionId}, topic: ${topic}, type: ${type}, userId: ${userId}`);
 
     const validTopics = ['CSS', 'HTML', 'JavaScript', 'React', 'NodeJS'];
     const validTypes = ['flashcard', 'quiz', 'codingChallenge'];
@@ -253,6 +274,8 @@ export const getSubmissions = async (req: AuthenticatedRequest, res: Response) =
     const { topic, type } = req.params;
     const userId = req.user?.userId;
 
+    console.log(`Fetching submissions for topic: ${topic}, type: ${type}, userId: ${userId}`);
+
     const validTopics = ['CSS', 'HTML', 'JavaScript', 'React', 'NodeJS'];
     const validTypes = ['flashcard', 'quiz', 'codingChallenge'];
 
@@ -285,7 +308,6 @@ export const getSubmissions = async (req: AuthenticatedRequest, res: Response) =
  *               - topic
  *               - type
  *               - questionText
- *               - answers
  *             properties:
  *               topic:
  *                 type: string
@@ -305,7 +327,7 @@ export const getSubmissions = async (req: AuthenticatedRequest, res: Response) =
  *                 type: array
  *                 items:
  *                   type: string
- *                 description: Array of correct answers
+ *                 description: Array of correct answers (required for flashcard/quiz)
  *               questionSuggestedAnswers:
  *                 type: array
  *                 items:
@@ -314,12 +336,7 @@ export const getSubmissions = async (req: AuthenticatedRequest, res: Response) =
  *               tests:
  *                 type: array
  *                 items:
- *                   type: object
- *                   properties:
- *                     input:
- *                       type: string
- *                     expectedOutput:
- *                       type: string
+ *                   $ref: '#/components/schemas/Test'
  *                 description: Test cases for coding challenges (required for coding challenges)
  *     responses:
  *       201:
@@ -330,35 +347,7 @@ export const getSubmissions = async (req: AuthenticatedRequest, res: Response) =
  *               type: object
  *               properties:
  *                 question:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: string
- *                     topic:
- *                       type: string
- *                     type:
- *                       type: string
- *                     codeSnippet:
- *                       type: string
- *                     questionText:
- *                       type: string
- *                     answers:
- *                       type: array
- *                       items:
- *                         type: string
- *                     questionSuggestedAnswers:
- *                       type: array
- *                       items:
- *                         type: string
- *                     tests:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           input:
- *                             type: string
- *                           expectedOutput:
- *                             type: string
+ *                   $ref: '#/components/schemas/Question'
  *       400:
  *         description: Invalid input data
  *       401:
@@ -367,26 +356,36 @@ export const getSubmissions = async (req: AuthenticatedRequest, res: Response) =
  *         description: Admin access required
  */
 export const createQuestion = async (req: AuthenticatedRequest, res: Response) => {
-    console.log('Received request body:', req.body);
     const { topic, type, codeSnippet, questionText, answers, questionSuggestedAnswers, tests } = req.body;
 
-    console.log('Type:', type);
-    console.log('Tests:', tests);
+    console.log('Received request body:', req.body);
+
     if (!topic || !type || !questionText) {
         throw new BadRequestError('Please provide topic, type, questionText');
     }
+
+    const validTopics = ['CSS', 'HTML', 'JavaScript', 'React', 'NodeJS'];
     const validTypes = ['flashcard', 'quiz', 'codingChallenge'];
+
+    if (!validTopics.includes(topic)) {
+        throw new BadRequestError(`Invalid topic. Must be one of: ${validTopics.join(', ')}`);
+    }
     if (!validTypes.includes(type)) {
         throw new BadRequestError(`Invalid question type. Must be one of: ${validTypes.join(', ')}`);
     }
-    // Additional validation for flashcards, quizzes, and coding challenges
-    if (type === 'flashcard' && (!answers || !Array.isArray(answers) || answers.length === 0)) {
-        throw new BadRequestError('Flashcard questions must have answers.');
-    }
-    if (type === 'quiz' && (!questionSuggestedAnswers || !Array.isArray(questionSuggestedAnswers) || questionSuggestedAnswers.length < 2 || !answers || !Array.isArray(answers) || answers.length === 0)) {
-        throw new BadRequestError('Quiz questions must have answers and at least 2 suggested answers');
-    }
-    if (type === 'codingChallenge') {
+
+    if (type === 'flashcard') {
+        if (!answers || !Array.isArray(answers) || answers.length === 0) {
+            throw new BadRequestError('Flashcard questions must have at least one answer');
+        }
+    } else if (type === 'quiz') {
+        if (!answers || !Array.isArray(answers) || answers.length === 0) {
+            throw new BadRequestError('Quiz questions must have at least one answer');
+        }
+        if (!questionSuggestedAnswers || !Array.isArray(questionSuggestedAnswers) || questionSuggestedAnswers.length < 2) {
+            throw new BadRequestError('Quiz questions must have at least 2 suggested answers');
+        }
+    } else if (type === 'codingChallenge') {
         if (!tests || !Array.isArray(tests) || tests.length < 1) {
             throw new BadRequestError('Coding challenges must have at least one test case');
         }
@@ -412,7 +411,7 @@ export const createQuestion = async (req: AuthenticatedRequest, res: Response) =
 
     res.status(StatusCodes.CREATED).json({
         question: {
-            id: question._id,
+            id: question._id.toString(),
             topic: question.topic,
             type: question.type,
             codeSnippet: question.codeSnippet,
@@ -464,22 +463,17 @@ export const createQuestion = async (req: AuthenticatedRequest, res: Response) =
  *                 type: array
  *                 items:
  *                   type: string
- *                 description: Array of correct answers
+ *                 description: Array of correct answers (required for flashcard/quiz)
  *               questionSuggestedAnswers:
  *                 type: array
  *                 items:
  *                   type: string
- *                 description: Suggested answers for quiz questions
+ *                 description: Suggested answers for quiz questions (required for quizzes)
  *               tests:
  *                 type: array
  *                 items:
- *                   type: object
- *                   properties:
- *                     input:
- *                       type: string
- *                     expectedOutput:
- *                       type: string
- *                 description: Test cases for coding challenges
+ *                   $ref: '#/components/schemas/Test'
+ *                 description: Test cases for coding challenges (required for coding challenges)
  *     responses:
  *       200:
  *         description: Question updated successfully
@@ -489,35 +483,7 @@ export const createQuestion = async (req: AuthenticatedRequest, res: Response) =
  *               type: object
  *               properties:
  *                 question:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: string
- *                     topic:
- *                       type: string
- *                     type:
- *                       type: string
- *                     codeSnippet:
- *                       type: string
- *                     questionText:
- *                       type: string
- *                     answers:
- *                       type: array
- *                       items:
- *                         type: string
- *                     questionSuggestedAnswers:
- *                       type: array
- *                       items:
- *                         type: string
- *                     tests:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           input:
- *                             type: string
- *                           expectedOutput:
- *                             type: string
+ *                   $ref: '#/components/schemas/Question'
  *       400:
  *         description: Invalid input data
  *       401:
@@ -531,39 +497,72 @@ export const updateQuestion = async (req: AuthenticatedRequest, res: Response) =
     const { id } = req.params;
     const { topic, type, codeSnippet, questionText, answers, questionSuggestedAnswers, tests } = req.body;
 
+    console.log(`Updating question id: ${id}, received body:`, req.body);
+
     const question = await Question.findById(id);
     if (!question) {
         throw new NotFoundError('Question not found');
     }
 
-    if (topic) question.topic = topic;
-    if (type) question.type = type;
-    if (codeSnippet !== undefined) question.codeSnippet = codeSnippet;
-    if (questionText) question.questionText = questionText;
-    if (answers) {
-        if (!Array.isArray(answers) || answers.length === 0) {
-            throw new BadRequestError('Answers must be a non-empty array');
-        }
-        question.answers = answers;
+    const validTopics = ['CSS', 'HTML', 'JavaScript', 'React', 'NodeJS'];
+    const validTypes = ['flashcard', 'quiz', 'codingChallenge'];
+
+    // Track updated type for validation
+    const newType = type || question.type;
+
+    // Validate required fields if provided
+    if (topic && !validTopics.includes(topic)) {
+        throw new BadRequestError(`Invalid topic. Must be one of: ${validTopics.join(', ')}`);
     }
-    if (questionSuggestedAnswers) {
-        if (question.type === 'quiz' && (!Array.isArray(questionSuggestedAnswers) || questionSuggestedAnswers.length < 2)) {
+    if (type && !validTypes.includes(type)) {
+        throw new BadRequestError(`Invalid question type. Must be one of: ${validTypes.join(', ')}`);
+    }
+    if (questionText && typeof questionText !== 'string') {
+        throw new BadRequestError('Question text must be a string');
+    }
+
+    // Validate based on question type
+    if (newType === 'flashcard') {
+        if (answers && (!Array.isArray(answers) || answers.length === 0)) {
+            throw new BadRequestError('Flashcard questions must have at least one answer');
+        }
+    } else if (newType === 'quiz') {
+        if (answers && (!Array.isArray(answers) || answers.length === 0)) {
+            throw new BadRequestError('Quiz questions must have at least one answer');
+        }
+        if (questionSuggestedAnswers && (!Array.isArray(questionSuggestedAnswers) || questionSuggestedAnswers.length < 2)) {
             throw new BadRequestError('Quiz questions must have at least 2 suggested answers');
         }
-        question.questionSuggestedAnswers = questionSuggestedAnswers;
-    }
-    if (tests) {
-        if (question.type === 'codingChallenge' && (!Array.isArray(tests) || tests.length < 1)) {
-            throw new BadRequestError('Coding challenges must have at least 1 test case');
+    } else if (newType === 'codingChallenge') {
+        if (tests) {
+            if (!Array.isArray(tests) || tests.length < 1) {
+                throw new BadRequestError('Coding challenges must have at least one test case');
+            }
+            for (const test of tests) {
+                if (!test.input || !Array.isArray(test.input) || !('expectedOutput' in test)) {
+                    throw new BadRequestError('Each test case must have an "input" array and an "expectedOutput" value');
+                }
+            }
         }
-        question.tests = tests;
+        if (answers?.length > 0 || questionSuggestedAnswers?.length > 0) {
+            throw new BadRequestError('Coding challenges should not have answers or suggested answers');
+        }
     }
+
+    // Update fields only if provided
+    if (topic) question.topic = topic;
+    if (type) question.type = type;
+    if (codeSnippet !== undefined) question.codeSnippet = codeSnippet || null;
+    if (questionText) question.questionText = questionText;
+    if (answers) question.answers = answers || [];
+    if (questionSuggestedAnswers !== undefined) question.questionSuggestedAnswers = questionSuggestedAnswers || [];
+    if (tests) question.tests = tests || [];
 
     await question.save();
 
     res.status(StatusCodes.OK).json({
         question: {
-            id: question._id,
+            id: question._id.toString(),
             topic: question.topic,
             type: question.type,
             codeSnippet: question.codeSnippet,
@@ -574,6 +573,7 @@ export const updateQuestion = async (req: AuthenticatedRequest, res: Response) =
         },
     });
 };
+
 /**
  * @swagger
  * /api/v1/training/questions/{id}:
@@ -608,14 +608,18 @@ export const updateQuestion = async (req: AuthenticatedRequest, res: Response) =
  */
 export const deleteQuestion = async (req: AuthenticatedRequest, res: Response) => {
     const { id } = req.params;
+
+    console.log(`Deleting question id: ${id}`);
+
     const question = await Question.findByIdAndDelete(id);
     if (!question) {
         throw new NotFoundError('Question not found');
     }
-    // Optionally, delete related UserSubmissions
+
     await UserSubmission.deleteMany({ questionId: id });
     res.status(StatusCodes.OK).json({ msg: 'Question deleted' });
 };
+
 /**
  * @swagger
  * /api/v1/training/questions:
@@ -645,31 +649,32 @@ export const deleteQuestion = async (req: AuthenticatedRequest, res: Response) =
  *                     $ref: '#/components/schemas/Question'
  *       401:
  *         description: Unauthorized - JWT token required
+ *       400:
+ *         description: Invalid sort parameter
  */
 export const getAllQuestions = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const { sort } = req.query;
 
-        let sortOptions = {};
+        console.log(`Fetching all questions with sort: ${sort}`);
+
+        let sortOptions: SortOptions = {};
         if (sort) {
             const sortFields = (sort as string).split(',').reduce((acc: SortOptions, field: string) => {
                 if (field.startsWith('-')) {
-                    acc[field.substring(1)] = -1; // Descending
+                    acc[field.substring(1)] = -1;
                 } else {
-                    acc[field] = 1; // Ascending
+                    acc[field] = 1;
                 }
                 return acc;
             }, {});
             sortOptions = sortFields;
         } else {
-            // Default sorting by topic (ascending) and type (ascending)
             sortOptions = { topic: 1, type: 1 };
         }
 
-        // Fetch all questions with sorting
         const questions = await Question.find().sort(sortOptions);
 
-        // Map the questions to the desired response format
         const formattedQuestions = questions.map((question) => ({
             id: question._id.toString(),
             topic: question.topic,
@@ -681,7 +686,7 @@ export const getAllQuestions = async (req: AuthenticatedRequest, res: Response, 
             tests: question.tests,
         }));
 
-        res.status(200).json({ questions: formattedQuestions });
+        res.status(StatusCodes.OK).json({ questions: formattedQuestions });
     } catch (error) {
         next(error);
     }
