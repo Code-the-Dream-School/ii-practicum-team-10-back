@@ -1,8 +1,8 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface ITest {
-    input: string;
-    expectedOutput: string;
+    input: any[];
+    expectedOutput: any;
 }
 
 export interface IQuestion extends Document {
@@ -10,8 +10,8 @@ export interface IQuestion extends Document {
     type: string;
     codeSnippet?: string;
     questionText: string;
-    answers: string[];
-    questionSuggestedAnswers?: string[]; 
+    answers?: string[];
+    questionSuggestedAnswers?: string[];
     tests?: ITest[];
 }
 
@@ -36,7 +36,7 @@ const QuestionSchema = new Schema<IQuestion>({
     },
     answers: {
         type: [String],
-        required: [true, 'Please provide at least one answer'],
+        required: false,
     },
     questionSuggestedAnswers: {
         type: [String],
@@ -56,8 +56,8 @@ const QuestionSchema = new Schema<IQuestion>({
     tests: {
         type: [
             {
-                input: { type: String, required: true },
-                expectedOutput: { type: String, required: true },
+                input: { type: [Schema.Types.Mixed], required: true },
+                expectedOutput: { type: Schema.Types.Mixed, required: true },
             },
         ],
         required: [
