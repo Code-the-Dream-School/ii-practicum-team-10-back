@@ -229,26 +229,29 @@ export const forgotPassword = async (req: Request, res: Response) => {
         throw new NotFoundError('No user found with this email.');
     }
 
-    // Generate a random token
     const resetToken = crypto.randomBytes(32).toString('hex');
     const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+    console.log('ForgotPassword - Plain token:', resetToken);
+    console.log('ForgotPassword - Hashed token:', hashedToken);
+    console.log('ForgotPassword - User ID:', user._id);
 
-    // Save token to database
     await PasswordResetToken.create({
         userId: user._id,
         token: hashedToken,
-        expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000),
     });
+    console.log('ForgotPassword - Token saved for user:', user._id);
 
-    // Send email with reset link
     const resetUrl = `${process.env.BASE_URL_FRONT}/reset-password?token=${resetToken}&email=${email}`;
+    console.log('ForgotPassword - Reset URL:', resetUrl);
+
     const emailContent = `
-    <h2>Password Reset Request</h2>
-    <p>You requested a password reset. Click the link below to reset your password:</p>
-    <a href="${resetUrl}">Reset Password</a>
-    <p>This link will expire in 1 hour.</p>
-    <p>If you did not request this, please ignore this email.</p>
-  `;
+        <h2>Password Reset Request</h2>
+        <p>You requested a password reset. Click the link below to reset your password:</p>
+        <a href="${resetUrl}">Reset Password</a>
+        <p>This link will expire in 1 hour.</p>
+        <p>If you did not request this, please ignore this email.</p>
+    `;
 
     try {
         await sendEmail({
@@ -256,9 +259,10 @@ export const forgotPassword = async (req: Request, res: Response) => {
             subject: 'Password Reset Request',
             html: emailContent,
         });
+        console.log('ForgotPassword - Email sent to:', email);
         res.status(StatusCodes.OK).json({ msg: 'Password reset email sent. Please check your inbox.' });
     } catch (error) {
-        // Clean up token if email fails
+        console.error('ForgotPassword - Email sending failed:', error);
         await PasswordResetToken.deleteOne({ userId: user._id, token: hashedToken });
         throw new BadRequestError('Failed to send reset email. Please try again.');
     }
@@ -328,24 +332,29 @@ export const resetPassword = async (req: Request, res: Response) => {
         throw new NotFoundError('No user found with this email.');
     }
 
-    // Hash the provided token to compare with stored token
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    console.log('ResetPassword - Request token:', token);
+    console.log('ResetPassword - Hashed request token:', hashedToken);
+    console.log('ResetPassword - User ID:', user._id);
+
     const resetToken = await PasswordResetToken.findOne({
         userId: user._id,
         token: hashedToken,
-        expiresAt: { $gt: new Date() }, // Not expired
+        expiresAt: { $gt: new Date() },
     });
 
     if (!resetToken) {
+        console.log('ResetPassword - No valid token found for user:', user._id);
+        console.log('ResetPassword - Current time:', new Date());
         throw new UnauthenticatedError('Invalid or expired reset token.');
     }
+    console.log('ResetPassword - Found token, expiresAt:', resetToken.expiresAt);
 
-    // Update password
     user.password = password;
     await user.save();
 
-    // Delete the used token
     await PasswordResetToken.deleteOne({ _id: resetToken._id });
+    console.log('ResetPassword - Token deleted, password updated for user:', user._id);
 
     res.status(StatusCodes.OK).json({ msg: 'Password reset successfully.' });
 };
