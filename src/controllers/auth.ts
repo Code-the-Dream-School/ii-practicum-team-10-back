@@ -238,18 +238,18 @@ export const forgotPassword = async (req: Request, res: Response) => {
     await PasswordResetToken.create({
         userId: user._id,
         token: hashedToken,
-        expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
     });
     console.log('ForgotPassword - Token saved for user:', user._id);
 
-    const resetUrl = `${process.env.BASE_URL_FRONT}/reset-password?token=${resetToken}&email=${email}`;
+    const resetUrl = `${process.env.BASE_URL_FRONT}/reset-password?token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(email)}`;
     console.log('ForgotPassword - Reset URL:', resetUrl);
 
     const emailContent = `
         <h2>Password Reset Request</h2>
         <p>You requested a password reset. Click the link below to reset your password:</p>
         <a href="${resetUrl}">Reset Password</a>
-        <p>This link will expire in 1 hour.</p>
+        <p>This link will expire in 24 hours.</p>
         <p>If you did not request this, please ignore this email.</p>
     `;
 

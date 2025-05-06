@@ -24,11 +24,4 @@ const PasswordResetTokenSchema = new Schema<IPasswordResetToken>({
     },
 });
 
-// Hash token before saving
-PasswordResetTokenSchema.pre('save', async function () {
-    if (this.isModified('token')) {
-        this.token = crypto.createHash('sha256').update(this.token).digest('hex');
-    }
-});
-
 export default mongoose.model<IPasswordResetToken>('PasswordResetToken', PasswordResetTokenSchema);
