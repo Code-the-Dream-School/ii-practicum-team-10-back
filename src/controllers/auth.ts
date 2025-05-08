@@ -14,7 +14,6 @@ const client = new OAuth2Client({
     redirectUri: process.env.GOOGLE_REDIRECT_URI,
 });
 
-
 interface AuthRequest extends Request {
     body: {
         name?: string;
@@ -24,7 +23,18 @@ interface AuthRequest extends Request {
     };
 }
 
-// Initiate Google login
+/**
+ * @swagger
+ * /api/v1/auth/google:
+ *   get:
+ *     summary: Initiate Google OAuth login
+ *     tags: [Auth]
+ *     responses:
+ *       302:
+ *         description: Redirects to Google OAuth consent screen
+ *       500:
+ *         description: Internal server error
+ */
 export const googleLogin = async (req: Request, res: Response) => {
     const authUrl = client.generateAuthUrl({
         scope: ['profile', 'email', 'openid'],
@@ -34,7 +44,29 @@ export const googleLogin = async (req: Request, res: Response) => {
     res.redirect(authUrl);
 };
 
-// Handle Google callback
+/**
+ * @swagger
+ * /api/v1/auth/google/callback:
+ *   get:
+ *     summary: Handle Google OAuth callback
+ *     tags: [Auth]
+ *     parameters:
+ *       - in: query
+ *         name: code
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Authorization code from Google
+ *     responses:
+ *       302:
+ *         description: Redirects to frontend with JWT token or error page
+ *       400:
+ *         description: No authorization code provided
+ *       401:
+ *         description: Invalid Google token
+ *       500:
+ *         description: Internal server error
+ */
 export const googleCallback = async (req: Request, res: Response) => {
     const { code } = req.query;
     if (!code) {
@@ -79,12 +111,8 @@ export const googleCallback = async (req: Request, res: Response) => {
             console.log('GoogleCallback - Existing user logged in:', user._id);
         }
 
-        // Generate JWT (adjust as per your auth system)
-        const token = jwt.sign(
-            { userId: user._id, email: user.email },
-            process.env.JWT_SECRET!,
-            { expiresIn: '1d' }
-        );
+        // Generate JWT
+        const token = user.createJWT();
 
         // Redirect to frontend with token
         const frontendUrl = `${process.env.BASE_URL_FRONT}/auth/success?token=${token}`;
@@ -94,6 +122,115 @@ export const googleCallback = async (req: Request, res: Response) => {
         res.redirect(`${process.env.BASE_URL_FRONT}/auth/error`);
     }
 };
+
+/**
+ * @swagger
+ * /api/v1/auth/google/signin:
+ *   post:
+ *     summary: Authenticate user with Google Sign-In ID token
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               id_token:
+ *                 type: string
+ *                 example: eyJhbGciOiJSUzI1NiIsImtpZCI6IjA3YjgwYTM2NTQyODUyNW...
+ *             required:
+ *               - id_token
+ *     responses:
+ *       200:
+ *         description: Successful authentication
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     userId:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     role:
+ *                       type: string
+ *                     profilePicture:
+ *                       type: string
+ *                 token:
+ *                   type: string
+ *       400:
+ *         description: No ID token provided
+ *       401:
+ *         description: Invalid Google token
+ *       500:
+ *         description: Internal server error
+ */
+export const googleSignIn = async (req: Request, res: Response) => {
+    const { id_token } = req.body;
+    if (!id_token) {
+        throw new BadRequestError('No ID token provided');
+    }
+
+    try {
+        // Verify ID token
+        const ticket = await client.verifyIdToken({
+            idToken: id_token,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+        const payload = ticket.getPayload();
+        if (!payload) {
+            throw new UnauthenticatedError('Invalid Google token');
+        }
+
+        const { sub: googleId, email, name } = payload;
+        console.log('GoogleSignIn - User:', { googleId, email, name });
+
+        // Check if user exists
+        let user = await User.findOne({ $or: [{ googleId }, { email }] });
+
+        if (!user) {
+            // Register new user
+            user = await User.create({
+                email,
+                googleId,
+                name,
+            });
+            console.log('GoogleSignIn - New user created:', user._id);
+        } else if (!user.googleId) {
+            // Link Google ID to existing user
+            user.googleId = googleId;
+            await user.save();
+            console.log('GoogleSignIn - Linked Google ID to user:', user._id);
+        } else {
+            console.log('GoogleSignIn - Existing user logged in:', user._id);
+        }
+
+        // Generate JWT
+        const token = user.createJWT();
+
+        // Return token to frontend
+        res.status(StatusCodes.OK).json({
+            user: {
+                userId: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                profilePicture: user.profilePicture,
+            },
+            token,
+        });
+    } catch (error) {
+        console.error('GoogleSignIn - Error:', error);
+        throw new UnauthenticatedError('Google Sign-In failed');
+    }
+};
+
 /**
  * @swagger
  * /api/v1/auth/register/user:
@@ -148,7 +285,6 @@ export const googleCallback = async (req: Request, res: Response) => {
  *       400:
  *         description: Bad request (e.g., missing fields, passwords don't match, email in use)
  */
-// **User Registration**
 export const registerUser = async (req: AuthRequest, res: Response) => {
     const { name, email, password, verifyPassword } = req.body;
 
@@ -171,11 +307,12 @@ export const registerUser = async (req: AuthRequest, res: Response) => {
             name: user.name,
             email: user.email,
             role: user.role,
-            profilePicture: user.profilePicture // Include the assigned profile picture
+            profilePicture: user.profilePicture,
         },
-        token
+        token,
     });
 };
+
 /**
  * @swagger
  * /api/v1/auth/login:
@@ -191,7 +328,7 @@ export const registerUser = async (req: AuthRequest, res: Response) => {
  *             properties:
  *               email:
  *                 type: string
- *                 example: salex@gmail.com
+ *                 example: alex@gmail.com
  *               password:
  *                 type: string
  *                 example: secret
@@ -226,7 +363,6 @@ export const registerUser = async (req: AuthRequest, res: Response) => {
  *       401:
  *         description: Invalid credentials
  */
-// **Login for User
 export const login = async (req: AuthRequest, res: Response) => {
     const { email, password } = req.body;
 
@@ -245,11 +381,7 @@ export const login = async (req: AuthRequest, res: Response) => {
         throw new UnauthenticatedError("Invalid credentials.");
     }
 
-    const token = jwt.sign(
-        { userId: user._id, name: user.name, role: user.role },
-        process.env.JWT_SECRET as string,
-        { expiresIn: "30d" }
-    );
+    const token = user.createJWT();
 
     res.status(StatusCodes.OK).json({
         user: {
@@ -257,11 +389,12 @@ export const login = async (req: AuthRequest, res: Response) => {
             name: user.name,
             email: user.email,
             role: user.role,
-            profilePicture: user.profilePicture
+            profilePicture: user.profilePicture,
         },
         token,
     });
 };
+
 /**
  * @swagger
  * /api/v1/auth/forgot-password:
@@ -277,7 +410,7 @@ export const login = async (req: AuthRequest, res: Response) => {
  *             properties:
  *               email:
  *                 type: string
- *                 example: salex@gmail.com
+ *                 example: alex@gmail.com
  *             required:
  *               - email
  *     responses:
@@ -362,7 +495,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
  *             properties:
  *               email:
  *                 type: string
- *                 example: salex@gmail.com
+ *                 example: alex@gmail.com
  *               token:
  *                 type: string
  *                 example: <reset-token>
