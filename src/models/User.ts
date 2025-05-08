@@ -3,7 +3,8 @@ import bcrypt from 'bcryptjs';
 import jwt, { Secret, SignOptions } from 'jsonwebtoken';
 
 export interface IUser extends Document {
-    name: string;
+    googleId?: string;
+    name?: string;
     email: string;
     password: string;
     role: 'user' | 'admin';
@@ -21,11 +22,16 @@ export interface IUser extends Document {
 }
 
 const UserSchema = new Schema<IUser>({
+    googleId: {
+        type: String, // Store Google's user ID
+        unique: true,
+        sparse: true, // Allows null for non-Google users
+    },
     name: {
         type: String,
-        required: [true, 'Please provide a name'],
-        minlength: 3,
-        maxlength: 50,
+     //   required: [true, 'Please provide a name'],
+     //   minlength: 3,
+     //   maxlength: 50,
     },
     email: {
         type: String,
@@ -38,8 +44,8 @@ const UserSchema = new Schema<IUser>({
     },
     password: {
         type: String,
-        required: [true, 'Please provide a password'],
-        minlength: 6,
+      //  required: [true, 'Please provide a password'],
+      //  minlength: 6,
     },
     role: {
         type: String,
@@ -66,7 +72,7 @@ const UserSchema = new Schema<IUser>({
 
 // Hash password before saving
 UserSchema.pre<IUser>('save', async function () {
-    if (!this.isModified('password')) return;
+    if (!this.isModified('password') || !this.password) return; // Skip if password is not modified or undefined
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
 });

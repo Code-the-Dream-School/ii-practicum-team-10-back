@@ -1,11 +1,19 @@
 import { Request, Response } from "express";
 import User from "../models/User";
 import PasswordResetToken from '../models/PasswordResetToken';
+import { OAuth2Client } from 'google-auth-library';
 import { StatusCodes } from "http-status-codes";
 import { BadRequestError, UnauthenticatedError, NotFoundError } from "../errors";
 import jwt from "jsonwebtoken";
 import crypto from 'crypto';
 import sendEmail from '../utils/sendEmail';
+
+const client = new OAuth2Client({
+    clientId: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    redirectUri: process.env.GOOGLE_REDIRECT_URI,
+});
+
 
 interface AuthRequest extends Request {
     body: {
@@ -15,6 +23,77 @@ interface AuthRequest extends Request {
         verifyPassword: string;
     };
 }
+
+// Initiate Google login
+export const googleLogin = async (req: Request, res: Response) => {
+    const authUrl = client.generateAuthUrl({
+        scope: ['profile', 'email', 'openid'],
+        prompt: 'consent',
+    });
+    console.log('GoogleLogin - Redirect URL:', authUrl);
+    res.redirect(authUrl);
+};
+
+// Handle Google callback
+export const googleCallback = async (req: Request, res: Response) => {
+    const { code } = req.query;
+    if (!code) {
+        throw new BadRequestError('No authorization code provided');
+    }
+
+    try {
+        // Exchange code for tokens
+        const { tokens } = await client.getToken(code as string);
+        console.log('GoogleCallback - Tokens received');
+
+        // Verify ID token and get user info
+        const ticket = await client.verifyIdToken({
+            idToken: tokens.id_token!,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+        const payload = ticket.getPayload();
+        if (!payload) {
+            throw new UnauthenticatedError('Invalid Google token');
+        }
+
+        const { sub: googleId, email, name } = payload;
+        console.log('GoogleCallback - User:', { googleId, email, name });
+
+        // Check if user exists
+        let user = await User.findOne({ $or: [{ googleId }, { email }] });
+
+        if (!user) {
+            // Register new user
+            user = await User.create({
+                email,
+                googleId,
+                name,
+            });
+            console.log('GoogleCallback - New user created:', user._id);
+        } else if (!user.googleId) {
+            // Link Google ID to existing user
+            user.googleId = googleId;
+            await user.save();
+            console.log('GoogleCallback - Linked Google ID to user:', user._id);
+        } else {
+            console.log('GoogleCallback - Existing user logged in:', user._id);
+        }
+
+        // Generate JWT (adjust as per your auth system)
+        const token = jwt.sign(
+            { userId: user._id, email: user.email },
+            process.env.JWT_SECRET!,
+            { expiresIn: '1d' }
+        );
+
+        // Redirect to frontend with token
+        const frontendUrl = `${process.env.BASE_URL_FRONT}/auth/success?token=${token}`;
+        res.redirect(frontendUrl);
+    } catch (error) {
+        console.error('GoogleCallback - Error:', error);
+        res.redirect(`${process.env.BASE_URL_FRONT}/auth/error`);
+    }
+};
 /**
  * @swagger
  * /api/v1/auth/register/user:
