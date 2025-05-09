@@ -272,6 +272,8 @@ export const googleSignIn = async (req: Request, res: Response) => {
  *                 user:
  *                   type: object
  *                   properties:
+ *                     userId:
+ *                       type: string
  *                     name:
  *                       type: string
  *                     email:
