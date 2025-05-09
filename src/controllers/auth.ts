@@ -304,6 +304,7 @@ export const registerUser = async (req: AuthRequest, res: Response) => {
 
     res.status(StatusCodes.CREATED).json({
         user: {
+            userId: user._id,
             name: user.name,
             email: user.email,
             role: user.role,
