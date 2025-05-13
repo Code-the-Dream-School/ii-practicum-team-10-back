@@ -23,7 +23,7 @@ const app: Application = express();
 
 // Middleware
 app.use(cors({
-    origin: process.env.BASE_URL_FRONT, // Allow requests from frontend
+    origin: process.env.BASE_URL_FRONT_PROD, // Allow requests from frontend
     credentials: true, // Allow credentials (cookies, authorization headers, etc.)
     methods: "GET,POST,PUT,DELETE,PATCH", // Allow specific HTTP methods
     allowedHeaders: "Content-Type,Authorization", // Allow required headers

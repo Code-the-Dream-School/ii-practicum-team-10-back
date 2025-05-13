@@ -115,11 +115,11 @@ export const googleCallback = async (req: Request, res: Response) => {
         const token = user.createJWT();
 
         // Redirect to frontend with token
-        const frontendUrl = `${process.env.BASE_URL_FRONT}/auth/success?token=${token}`;
+        const frontendUrl = `${process.env.BASE_URL_FRONT_PROD}/auth/success?token=${token}`;
         res.redirect(frontendUrl);
     } catch (error) {
         console.error('GoogleCallback - Error:', error);
-        res.redirect(`${process.env.BASE_URL_FRONT}/auth/error`);
+        res.redirect(`${process.env.BASE_URL_FRONT_PROD}/auth/error`);
     }
 };
 
@@ -457,7 +457,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
     });
     console.log('ForgotPassword - Token saved for user:', user._id);
 
-    const resetUrl = `${process.env.BASE_URL_FRONT}/reset-password?token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(email)}`;
+    const resetUrl = `${process.env.BASE_URL_FRONT_PROD}/reset-password?token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(email)}`;
     console.log('ForgotPassword - Reset URL:', resetUrl);
 
     const emailContent = `
